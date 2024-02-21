@@ -29,6 +29,54 @@ export default function Home() {
     color: "bg-[#0c80cec5]",
   });
 
+  // Code added to implement sorting of cards by status column
+  const [isSortedByStatus, setIsSortedByStatus] = useState(false);
+  const [sortDirection, setSortDirection] = useState("asc"); // or 'desc'
+
+  const statusOrder = ["ready", "outdated", "in-sync", "syncing", "success", "error"];
+
+  const toggleSortByStatus = () => {
+    setIsSortedByStatus(!isSortedByStatus);
+    setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+  };
+
+  const getSortedSyncStatus = () => {
+    if (!isSortedByStatus) return syncStatus;
+
+    const sortedStatus = [...syncStatus].sort((a, b) => {
+      const orderA = statusOrder.indexOf(a.status);
+      const orderB = statusOrder.indexOf(b.status);
+      return sortDirection === "asc" ? orderA - orderB : orderB - orderA;
+    });
+
+    return sortedStatus;
+  };
+
+  const combinedSort = (a, b) => {
+    // Existing sorting logic
+    if (a.entity_type === "dashboard" && b.entity_type !== "dashboard") {
+      return 1;
+    } else if (a.entity_type !== "dashboard" && b.entity_type === "dashboard") {
+      return -1;
+    } else if (a.is_dependent && !b.is_dependent) {
+      return 1;
+    } else if (!a.is_dependent && b.is_dependent) {
+      return -1;
+    }
+
+    // New sorting logic for status when toggle is active
+    if (isSortedByStatus) {
+      const orderA = statusOrder.indexOf(a.status);
+      const orderB = statusOrder.indexOf(b.status);
+      if (orderA !== orderB) {
+        return sortDirection === "asc" ? orderA - orderB : orderB - orderA;
+      }
+    }
+
+    // Fallback to sorting by ID if none of the above conditions are met
+    return a.id.localeCompare(b.id);
+  };
+
   const [settings, setSettings] = useState({
     refreshMapping: false,
     syncMarkdown: false,
@@ -1068,26 +1116,25 @@ export default function Home() {
                   <th scope="col" className="py-3 px-2">
                     Path
                   </th>
-                  <th scope="col" className="py-3 px-2">
-                    Status
+                  <th scope="col" className="py-3 px-2 flex justify-between items-center">
+                    <span>Status</span>
+                    <button onClick={toggleSortByStatus} className="flex items-center">
+                      {isSortedByStatus ? (
+                        sortDirection === "asc" ? (
+                          <span>🔽</span> // Icon for ascending sort
+                        ) : (
+                          <span>🔼</span> // Icon for descending sort
+                        )
+                      ) : (
+                        <span>⇅</span> // Icon indicating sorting is available but not active
+                      )}
+                    </button>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {[...syncStatus]
-                  .sort((a, b) => {
-                    if (a.entity_type === "dashboard" && b.entity_type !== "dashboard") {
-                      return 1;
-                    } else if (a.entity_type !== "dashboard" && b.entity_type === "dashboard") {
-                      return -1;
-                    } else if (a.is_dependent && !b.is_dependent) {
-                      return 1;
-                    } else if (!a.is_dependent && b.is_dependent) {
-                      return -1;
-                    } else {
-                      return a.id.localeCompare(b.id);
-                    }
-                  })
+                  .sort(combinedSort)
                   .map((status: SyncStatus, _index: number) => (
                     <tr
                       key={status.id + status.entity_type + (status.question.entity_id ?? status.question.id)}
