@@ -19,6 +19,8 @@ import {
   createSyncLog,
   updateSyncLog,
 } from "./api";
+import { Accordion, AccordionItem } from "@nextui-org/react";
+import { Checkbox } from "@nextui-org/react"; // Import Checkbox from Next UI
 
 import React, { Fragment } from "react"; // needed for collapsible
 
@@ -194,6 +196,23 @@ export default function Home() {
 
   // Group the sorted sync statuses by destination and path
   const syncStatusGroups = groupByDestinationAndPath(sortedSyncStatus);
+
+  // Logic for design implementation:
+
+  // Function to determine if a destination group is expanded
+  const isDestinationExpanded = (destinationString) => {
+    return (
+      expandedDestinations[destinationString] || (expandAll && expandedDestinations[destinationString] === undefined)
+    );
+  };
+
+  // Function to determine if a path group is expanded
+  const isPathExpanded = (destinationString, pathString) => {
+    return (
+      expandedPaths[destinationString]?.[pathString] ||
+      (expandAll && expandedPaths[destinationString]?.[pathString] === undefined)
+    );
+  };
 
   // END OF ADDED LOGIC
 
@@ -1002,7 +1021,6 @@ export default function Home() {
     setSyncLoading(false);
   }
 
-  
   async function startSync() {
     setSyncLoading(true);
     setProgressBar({ value: 0, color: "bg-[#0c80cec5]" });
@@ -1296,7 +1314,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(syncStatusGroups).map(([destinationString, pathGroups], destinationIndex) => (
+                {/* {Object.entries(syncStatusGroups).map(([destinationString, pathGroups], destinationIndex) => (
                   <Fragment key={destinationString}>
                     <tr className="bg-gray-200 cursor-pointer" onClick={() => toggleDestination(destinationString)}>
                       <td colSpan={6} className="py-2 px-4 font-medium">
@@ -1408,7 +1426,78 @@ export default function Home() {
                         </Fragment>
                       ))}
                   </Fragment>
-                ))}
+                ))} */}
+                <Accordion selectionMode="multiple">
+                  {Object.entries(syncStatusGroups).map(([destinationString, pathGroups], destinationIndex) => (
+                    <AccordionItem
+                      key={destinationString}
+                      title={
+                        <div className="flex items-center justify-between">
+                          <span>{destinationString}</span>
+                          <Checkbox
+                            checked={isDestinationExpanded(destinationString)}
+                            onChange={() => toggleDestination(destinationString)}
+                          />
+                        </div>
+                      }
+                      expanded={isDestinationExpanded(destinationString)}
+                    >
+                      <Accordion selectionMode="multiple" showDivider={false}>
+                        {Object.entries(pathGroups).map(([pathString, group], pathIndex) => (
+                          <AccordionItem
+                            key={pathString}
+                            title={
+                              <div className="flex items-center justify-between">
+                                <span>{`${pathString} (${group.length})`}</span>
+                                <Checkbox
+                                  checked={isPathExpanded(destinationString, pathString)}
+                                  onChange={() => togglePath(destinationString, pathString)}
+                                />
+                              </div>
+                            }
+                            expanded={isPathExpanded(destinationString, pathString)}
+                          >
+                            {/* Render the cards within the path group */}
+                            {group.map((status: SyncStatus, index: number) => (
+                              <div key={status.id} className="p-2 border-b last:border-b-0">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <Checkbox
+                                      checked={status.checked}
+                                      disabled={status.is_excluded}
+                                      onChange={(e) => {
+                                        if (status.is_excluded) return;
+                                        setSyncStatus((currentSyncStatus) =>
+                                          currentSyncStatus.map((s) =>
+                                            s.id === status.id ? { ...s, checked: e.target.checked } : s
+                                          )
+                                        );
+                                      }}
+                                    />
+                                    <div className="ml-2">
+                                      <p className="font-medium text-gray-900">{status.question.name}</p>
+                                      <p className="text-xs text-gray-500">
+                                        ({status.entity_type}) ({status.question.entity_id ?? status.question.id}){" "}
+                                        {status.is_dependent && "(dependent)"} {status.is_excluded && "(excluded)"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`px-2 py-1 font-medium capitalize ${
+                                      status.is_excluded ? "text-orange-500" : getSyncStatusTextColor(status.status)
+                                    } whitespace-nowrap`}
+                                  >
+                                    {status.is_excluded ? "Excluded" : status.status}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </tbody>
             </table>
           </div>

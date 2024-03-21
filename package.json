@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@nextui-org/react": "^2.2.10",
     "@prisma/client": "^5.2.0",
     "@sentry/nextjs": "^7.88.0",
     "@sentry/node": "^7.88.0",
