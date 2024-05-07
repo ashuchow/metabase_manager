@@ -31,3 +31,21 @@ model SyncLog {
   @@unique([timestamp, sourceHost, destinationHost])
 }
 
+// New model for email and password
+model UserCredentials {
+  id       Int    @id @unique @default(autoincrement())
+  email    String @unique
+  password String
+}
+
+// New model for metabase instance details
+model MetabaseInstance {
+  id           Int    @id @unique @default(autoincrement())
+  host         String
+  email        String
+  password     String
+  databaseId   Int
+  collectionId Int
+
+  @@unique([host, email])
+}

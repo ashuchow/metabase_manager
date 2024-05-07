@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Server } from "../types";
+import { Database, Server } from "../../types";
 import toast from "react-hot-toast";
 import { login, collectionList, databaseList, dbSchemaFetch } from "@/app/api";
 import { formatHostUrl } from "@/app/utils";

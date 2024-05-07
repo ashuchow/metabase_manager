@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ServerInput } from "@/components/ServerInput";
+import { ServerInput } from "@/app/components/ServerInput";
 import { Toaster, toast } from "react-hot-toast";
 import { Card, Dashboard, DatabaseMeta, Field, Server, SyncMapping, SyncStatus, SyncStatusText, Table } from "@/types";
 import { exportConfig, findCollectionId, findPath, formatHostUrl, importConfig } from "./utils";
@@ -19,6 +19,8 @@ import {
   createSyncLog,
   updateSyncLog,
 } from "./api";
+import { useSession, signIn, SessionProvider } from "next-auth/react";
+import NavBar from './components/NavBar';
 
 import React, { Fragment } from "react"; // needed for collapsible
 
@@ -1111,6 +1113,25 @@ export default function Home() {
     await loadSyncData();
     setSyncLoading(false);
   }
+  // const { data: session, status } = useSession();
+
+  // if (status === "loading") {
+  //   return <div>Loading...</div>; // Or some loading indicator
+  // }
+
+  // if (!session) {
+  //   return (
+  //     <div>
+  //       <NavBar />
+  //       <div className="text-center mt-20">
+  //         <p>You are not signed in.</p>
+  //         <button onClick={() => signIn()} className="mt-4 p-2 bg-blue-500 text-white rounded">
+  //           Sign in
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="bg-white py-6">
