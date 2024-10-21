@@ -19,6 +19,9 @@ import {
   createSyncLog,
   updateSyncLog,
 } from "./api";
+import SignIn from "../components/SignIn"; // Import the SignIn component
+
+import { useRouter } from "next/navigation"; // For programmatic navigation
 
 import React, { Fragment } from "react"; // needed for collapsible
 
@@ -1111,8 +1114,30 @@ export default function Home() {
     await loadSyncData();
     setSyncLoading(false);
   }
+  const [isLoading, setIsLoading] = useState(true); // Add loading state to wait for auth check
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if the user is authenticated
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+
+    if (isAuthenticated !== "true") {
+      console.log("User not authenticated. Redirecting to sign-in page...");
+      router.push("/signin"); // Redirect to sign-in page if not authenticated
+    } else {
+      console.log("User authenticated. Allowing access to home page.");
+    }
+
+    setIsLoading(false); // Authentication check complete
+  }, [router]);
+
+  if (isLoading) {
+    // Show a loading message while checking authentication
+    return <div>Loading...</div>;
+  }
 
   return (
+    
     <div className="bg-white py-6">
       <Toaster position="top-right" />
       <div className="mx-auto max-w-4xl text-base leading-7 text-gray-700 border rounded-lg border-gray-300 px-8 py-8">

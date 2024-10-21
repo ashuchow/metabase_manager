@@ -1,5 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Navbar from "../components/Navbar"; // Import the Navbar component
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Metabase Manager",
@@ -8,8 +10,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
+    <AuthProvider>
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Navbar /> {/* Use the client-side Navbar */}
+        <main>{children}</main>
+      </body>
     </html>
+    </AuthProvider>
   );
 }
