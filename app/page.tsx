@@ -25,6 +25,8 @@ import { useRouter } from "next/navigation"; // For programmatic navigation
 
 import React, { Fragment } from "react"; // needed for collapsible
 
+import { useAuth } from "@/context/AuthContext"; //consistently check authorization
+
 export default function Home() {
   const [sourceServers, setSourceServers] = useState<Server[]>([]);
   const [proceedLoading, setProceedLoading] = useState(false);

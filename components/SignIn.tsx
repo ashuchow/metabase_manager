@@ -1,4 +1,4 @@
-"use client"; // This is a client component
+"use client";
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -11,15 +11,33 @@ export default function SignIn() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === "admin" && password === "password123") {
-      signIn();
-      router.push("/");
-    } else {
-      setError("Invalid username or password");
+  
+    try {
+      const res = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json', // Ensure header is set
+        },
+        body: JSON.stringify({ username, password }), // Ensure JSON.stringify
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        console.log('User Details:', data.user);
+        signIn(data.user); // Pass user data to signIn
+        router.push("/"); // Redirect to home after successful sign-in
+      } else {
+        setError(data.error || 'An error occurred during sign-in');
+      }
+    } catch (err) {
+      setError('An error occurred during sign-in');
+      console.error('Sign-in error:', err);
     }
   };
+  
 
   return (
     <div style={containerStyle}>

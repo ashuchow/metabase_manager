@@ -1,13 +1,13 @@
-"use client"; // This is a client component
+"use client";
 
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext"; // Import the auth context
-import { useRouter } from "next/navigation"; // For programmatic navigation
-import { useState } from "react"; // For dropdown management
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Navbar() {
-  const { isAuthenticated, signOut } = useAuth(); // Get auth state and actions from context
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Manage dropdown state
+  const { isAuthenticated, user, signOut } = useAuth(); // Include `user` to access role
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const router = useRouter();
 
   const handleSignOut = () => {
@@ -45,6 +45,22 @@ export default function Navbar() {
             )}
           </li>
 
+          {/* Conditional buttons for Add Users and Add Servers */}
+          {isAuthenticated && user?.role === "SUPER_USER" && (
+            <li>
+              <Link href="/superuser">
+                <button style={buttonStyle}>Add Users</button>
+              </Link>
+            </li>
+          )}
+          {isAuthenticated && (
+            <li>
+              <Link href="/serverdetails">
+                <button style={buttonStyle}>Add Servers</button>
+              </Link>
+            </li>
+          )}
+
           {/* Sign In/Sign Out Button */}
           <li>
             {isAuthenticated ? (
@@ -59,7 +75,7 @@ export default function Navbar() {
   );
 }
 
-// Styles
+// Styles (unchanged)
 const navStyle = {
   backgroundColor: '#1f2937',
   padding: '10px 20px',

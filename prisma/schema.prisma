@@ -31,3 +31,42 @@ model SyncLog {
   @@unique([timestamp, sourceHost, destinationHost])
 }
 
+
+model User {
+  id                 Int                  @id @default(autoincrement())
+  username           String               @unique
+  password           String
+  role               Role
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  userMetabaseServers UserMetabaseServer[]
+}
+
+enum Role {
+  SUPER_USER
+  USER
+}
+
+model MetabaseServer {
+  id                 Int                  @id @default(autoincrement())
+  hostUrl            String               @unique  // Unique for each server
+  isSource           Boolean              // true for source server, false for destination server
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  userMetabaseServers UserMetabaseServer[]
+}
+
+// Join table to store user-specific credentials for each server
+model UserMetabaseServer {
+  id          Int            @id @default(autoincrement())
+  user        User           @relation(fields: [userId], references: [id])
+  userId      Int
+  server      MetabaseServer @relation(fields: [serverId], references: [id])
+  serverId    Int
+  email       String         // User-specific email for this server
+  password    String         // User-specific password for this server
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, serverId]) // Ensure each user-server combination is unique
+}
