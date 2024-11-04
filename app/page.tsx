@@ -1119,24 +1119,23 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true); // Add loading state to wait for auth check
   const router = useRouter();
 
-  useEffect(() => {
-    // Check if the user is authenticated
-    const isAuthenticated = localStorage.getItem("isAuthenticated");
+  const { isAuthenticated, loading, user } = useAuth();
 
-    if (isAuthenticated !== "true") {
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      // Redirect to sign-in page if not authenticated and loading is complete
       console.log("User not authenticated. Redirecting to sign-in page...");
-      router.push("/signin"); // Redirect to sign-in page if not authenticated
-    } else {
+      router.push("/signin");
+    } else if (!loading && isAuthenticated) {
       console.log("User authenticated. Allowing access to home page.");
     }
+  }, [loading, isAuthenticated, router]);
 
-    setIsLoading(false); // Authentication check complete
-  }, [router]);
-
-  if (isLoading) {
+  if (loading) {
     // Show a loading message while checking authentication
     return <div>Loading...</div>;
   }
+
 
   return (
     

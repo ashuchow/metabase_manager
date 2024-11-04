@@ -34,28 +34,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedAuth = localStorage.getItem("isAuthenticated");
-
-    if (!storedUser || storedAuth !== "true") {
+    const expiry = localStorage.getItem("expiry");
+  
+    const now = new Date().getTime();
+  
+    if (!storedUser || storedAuth !== "true" || (expiry && now > parseInt(expiry))) {
       localStorage.removeItem("user");
       localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("expiry");
       setIsAuthenticated(false);
       setUser(null);
     } else {
-      setUser(JSON.parse(storedUser));  // Parse stored user data, including id
+      setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
     }
-
+  
     setLoading(false);
   }, []);
-
+  
   const signIn = (userData: User) => {
-    console.log("User signed in:", userData); // Console log user details
-
+    console.log("User signed in:", userData);
+  
     setIsAuthenticated(true);
-    setUser(userData);  // Save full user data, including id
+    setUser(userData);
     localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("user", JSON.stringify(userData)); // Store full user data with id
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("expiry", (new Date().getTime() + 15 * 60 * 1000).toString()); // 15 minute expiry
   };
+  
 
   const signOut = () => {
     setIsAuthenticated(false);
