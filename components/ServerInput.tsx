@@ -205,7 +205,7 @@ function ServerInput(props: {
       {savedServers.length > 0 && (
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2">
-            Select a Saved Server
+            Add from Saved Servers
           </label>
           <select
             className="border rounded w-full py-2 px-3 text-gray-700 leading-tight"

@@ -22,7 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const serverSchema = z.object({
   hostUrl: z.string(),
@@ -100,10 +105,35 @@ export default function MetabaseServersPage() {
     }
   };
 
+  // Function to handle server deletion
+  const handleDelete = async (serverId) => {
+    try {
+      const res = await fetch(`/api/servers?serverId=${serverId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setServers((prevServers) =>
+          prevServers.filter((server) => server.id !== serverId)
+        );
+        setSuccess("Server deleted successfully!");
+      } else {
+        const result = await res.json();
+        setErrorState(result.error || "Failed to delete server.");
+      }
+    } catch (err) {
+      console.error("Error deleting server:", err);
+      setErrorState("Failed to delete server.");
+    }
+  };
+
+  // Group servers into source and destination
+  const sourceServers = servers.filter((server) => server.isSource);
+  const destinationServers = servers.filter((server) => !server.isSource);
+
   return (
-    <div className="flex justify-center items-center h-screen space-x-8 px-8">
+    <div className="flex flex-col lg:flex-row justify-center items-start lg:items-center h-screen space-x-0 lg:space-x-8 px-8">
       {/* First Card */}
-      <div className="flex-1 max-w-2xl">
+      <div className="flex-1 max-w-2xl mb-8 lg:mb-0">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Add Metabase Server</CardTitle>
@@ -208,14 +238,62 @@ export default function MetabaseServersPage() {
             <CardTitle>Your Metabase Servers</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul>
-              {servers.map((server) => (
-                <li key={server.id} className="mb-2">
-                  {server.hostUrl} -{" "}
-                  {server.isSource ? "Source" : "Destination"}
-                </li>
-              ))}
-            </ul>
+            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {success && <p className="text-green-500 mb-4">{success}</p>}
+
+            {/* Source Servers */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-2">Source Servers</h2>
+              {sourceServers.length > 0 ? (
+                <ul>
+                  {sourceServers.map((server) => (
+                    <li
+                      key={server.id}
+                      className="flex justify-between items-center mb-2"
+                    >
+                      <span>{server.hostUrl}</span>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(server.id)}
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No source servers added.</p>
+              )}
+            </div>
+
+            {/* Destination Servers */}
+            <div>
+              <h2 className="text-lg font-semibold mb-2">
+                Destination Servers
+              </h2>
+              {destinationServers.length > 0 ? (
+                <ul>
+                  {destinationServers.map((server) => (
+                    <li
+                      key={server.id}
+                      className="flex justify-between items-center mb-2"
+                    >
+                      <span>{server.hostUrl}</span>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(server.id)}
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No destination servers added.</p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

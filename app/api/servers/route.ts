@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-
 export async function GET(request: Request) {
   try {
     // Fetch all user servers
@@ -13,6 +12,7 @@ export async function GET(request: Request) {
 
     // Format the response data to include necessary fields
     const formattedServers = userServers.map((userServer) => ({
+      id: userServer.server.id, // Include server ID
       hostUrl: userServer.server.hostUrl,
       email: userServer.email,
       password: userServer.password, // Include plain-text password (not recommended)
@@ -63,5 +63,44 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error saving Metabase server:", error);
     return NextResponse.json({ error: "Failed to save Metabase server" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const serverId = parseInt(searchParams.get('serverId'));
+    const userId = 1; // Replace with actual user ID from authentication
+
+    if (!serverId) {
+      return NextResponse.json({ error: "Server ID is required" }, { status: 400 });
+    }
+
+    // Delete the user-specific server entry
+    await prisma.userMetabaseServer.delete({
+      where: {
+        userId_serverId: { userId, serverId },
+      },
+    });
+
+    // Optionally, delete the server if no other users are using it
+    const otherUsers = await prisma.userMetabaseServer.count({
+      where: {
+        serverId,
+      },
+    });
+
+    if (otherUsers === 0) {
+      await prisma.metabaseServer.delete({
+        where: {
+          id: serverId,
+        },
+      });
+    }
+
+    return NextResponse.json({ message: "Server deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting Metabase server:", error);
+    return NextResponse.json({ error: "Failed to delete Metabase server" }, { status: 500 });
   }
 }
