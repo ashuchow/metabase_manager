@@ -1,31 +1,21 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
 
 
 export async function GET(request: Request) {
   try {
-    // Parse the userId from the URL search params
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-
-    if (!userId) {
-      console.error("User ID is missing.");
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
-    }
-
-    // Fetch servers associated with the user and include user-specific credentials
+    // Fetch all user servers
     const userServers = await prisma.userMetabaseServer.findMany({
-      where: { userId: parseInt(userId) },
       include: {
         server: true, // Include server details
       },
     });
 
-    // Format the response data to include only necessary fields
+    // Format the response data to include necessary fields
     const formattedServers = userServers.map((userServer) => ({
       hostUrl: userServer.server.hostUrl,
       email: userServer.email,
+      password: userServer.password, // Include plain-text password (not recommended)
       isSource: userServer.server.isSource,
     }));
 
@@ -36,20 +26,10 @@ export async function GET(request: Request) {
   }
 }
 
-
 export async function POST(request: Request) {
   try {
-    const { hostUrl, email, password, isSource, userId } = await request.json();
-    console.log("Received data:", { hostUrl, email, password, isSource, userId });
-
-    if (!userId) {
-      console.error("User ID is missing or unauthorized.");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Hash the password securely
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Password hashed successfully");
+    const { hostUrl, email, password, isSource } = await request.json();
+    console.log("Received data:", { hostUrl, email, password, isSource });
 
     // Upsert the MetabaseServer (only one entry per unique hostUrl)
     const server = await prisma.metabaseServer.upsert({
@@ -63,17 +43,17 @@ export async function POST(request: Request) {
     // Upsert the UserMetabaseServer with user-specific email and password
     const userServer = await prisma.userMetabaseServer.upsert({
       where: {
-        userId_serverId: { userId, serverId: server.id }, // Unique constraint for user-server pair
+        userId_serverId: { userId: 1, serverId: server.id }, // Assuming userId is 1 for now
       },
       update: {
         email,
-        password: hashedPassword,
+        password, // Store password in plain text (not recommended)
       },
       create: {
-        userId,
+        userId: 1, // Assuming userId is 1 for now
         serverId: server.id,
         email,
-        password: hashedPassword,
+        password, // Store password in plain text (not recommended)
       },
     });
 

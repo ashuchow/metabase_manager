@@ -1,183 +1,224 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const serverSchema = z.object({
+  hostUrl: z.string(),
+  email: z.string(),
+  password: z.string(),
+  isSource: z.boolean(),
+});
 
 export default function MetabaseServersPage() {
-  const [hostUrl, setHostUrl] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSource, setIsSource] = useState(true);
-  const [servers, setServers] = useState([]); // State to hold the user's servers
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
   const { user } = useAuth();
+  const formMethods = useForm({
+    resolver: zodResolver(serverSchema),
+    defaultValues: {
+      hostUrl: "",
+      email: "",
+      password: "",
+      isSource: true,
+    },
+  });
 
-  console.log(user)
+  const {
+    handleSubmit,
+    control,
+    setError,
+    reset,
+    formState: { errors },
+  } = formMethods;
+  const [servers, setServers] = useState([]); // State to hold the user's servers
+  const [success, setSuccess] = useState("");
+  const [error, setErrorState] = useState("");
 
   // Fetch servers associated with the user on component load
   useEffect(() => {
     const fetchServers = async () => {
       try {
         const res = await fetch(`/api/servers?userId=${user?.id}`);
-        if (!res.ok) throw new Error('Failed to fetch servers');
+        if (!res.ok) throw new Error("Failed to fetch servers");
         const data = await res.json();
         setServers(data);
       } catch (err) {
         console.error("Failed to load servers", err);
-        setError("Failed to load servers");
+        setErrorState("Failed to load servers");
       }
     };
-  
+
     if (user?.id) {
       fetchServers();
     }
   }, [user]);
-  
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-  
-    console.log("Attempting to save server with details:", {
-      hostUrl,
-      email,
-      password,
-      isSource,
-      userId: user?.id
-    }); // Log the data before sending the request
-  
+  const onSubmit = async (data) => {
     try {
-      const res = await fetch('/api/servers', {
-        method: 'POST',
+      const res = await fetch("/api/servers", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          hostUrl,
-          email,
-          password,
-          isSource,
-          userId: user?.id,
-        }),
+        body: JSON.stringify({ ...data, userId: user?.id }),
       });
-  
-      console.log("Response status:", res.status); // Log the response status
-  
+
       if (res.ok) {
         const newServer = await res.json();
-        console.log("Server saved successfully:", newServer); // Log successful save
-        setSuccess('Server details saved successfully!');
+        setSuccess("Server details saved successfully!");
         setServers((prevServers) => [...prevServers, newServer]);
-        setHostUrl('');
-        setEmail('');
-        setPassword('');
-        setIsSource(true);
+        reset();
       } else {
-        const data = await res.json();
-        setError(data.error || 'Failed to save server details.');
-        console.error("Server save failed:", data.error); // Log error message from server
+        const result = await res.json();
+        setError("root", {
+          message: result.error || "Failed to save server details.",
+        });
       }
     } catch (err) {
-      setError('Failed to save server details.');
-      console.error("Error in request to save server:", err); // Log any fetch errors
+      setError("root", { message: "Failed to save server details." });
+      console.error("Error in request to save server:", err);
     }
   };
-  
-  
 
   return (
-    <div style={containerStyle}>
-      <h2>Add Metabase Server</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
-      <form onSubmit={handleSubmit} style={formStyle}>
-        <div style={inputGroupStyle}>
-          <label>Host URL:</label>
-          <input
-            type="text"
-            value={hostUrl}
-            onChange={(e) => setHostUrl(e.target.value)}
-            required
-            style={inputStyle}
-          />
-        </div>
-        <div style={inputGroupStyle}>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={inputStyle}
-          />
-        </div>
-        <div style={inputGroupStyle}>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={inputStyle}
-          />
-        </div>
-        <div style={inputGroupStyle}>
-          <label>Server Type:</label>
-          <select value={isSource ? "source" : "destination"} onChange={(e) => setIsSource(e.target.value === "source")} style={inputStyle}>
-            <option value="source">Source</option>
-            <option value="destination">Destination</option>
-          </select>
-        </div>
-        <button type="submit" style={buttonStyle}>Save Server</button>
-      </form>
+    <div className="flex justify-center items-center h-screen space-x-8 px-8">
+      {/* First Card */}
+      <div className="flex-1 max-w-2xl">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Add Metabase Server</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {success && <p className="text-green-500 mb-4">{success}</p>}
+            <FormProvider {...formMethods}>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <FormField
+                  control={control}
+                  name="hostUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Host URL</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the host URL" {...field} />
+                      </FormControl>
+                      {errors.hostUrl && (
+                        <FormMessage>{errors.hostUrl.message}</FormMessage>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your email" {...field} />
+                      </FormControl>
+                      {errors.email && (
+                        <FormMessage>{errors.email.message}</FormMessage>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Enter your password"
+                          {...field}
+                        />
+                      </FormControl>
+                      {errors.password && (
+                        <FormMessage>{errors.password.message}</FormMessage>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="isSource"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Server Type</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value ? "source" : "destination"}
+                          onValueChange={(value) =>
+                            field.onChange(value === "source")
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select server type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="source">Source</SelectItem>
+                            <SelectItem value="destination">
+                              Destination
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      {errors.isSource && (
+                        <FormMessage>{errors.isSource.message}</FormMessage>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full mt-4">
+                  Save Server
+                </Button>
+              </form>
+            </FormProvider>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Display list of servers associated with the user */}
-      <h3>Your Metabase Servers</h3>
-      <ul>
-        {servers.map((server: any) => (
-          <li key={server.id}>
-            {server.hostUrl} - {server.isSource ? "Source" : "Destination"}
-          </li>
-        ))}
-      </ul>
+      {/* Second Card */}
+      <div className="flex-1 max-w-2xl">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Your Metabase Servers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul>
+              {servers.map((server) => (
+                <li key={server.id} className="mb-2">
+                  {server.hostUrl} -{" "}
+                  {server.isSource ? "Source" : "Destination"}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
-
-// Styles
-const containerStyle = {
-    maxWidth: '600px',
-    margin: '50px auto',
-    padding: '20px',
-    border: '1px solid #ccc',
-    borderRadius: '8px',
-    backgroundColor: '#f9f9f9',
-  };
-  
-  const formStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px',
-  };
-  
-  const inputGroupStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-  };
-  
-  const inputStyle = {
-    padding: '10px',
-    fontSize: '16px',
-    borderRadius: '5px',
-    border: '1px solid #ddd',
-  };
-  
-  const buttonStyle = {
-    padding: '10px 20px',
-    backgroundColor: '#3b82f6',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    fontSize: '16px',
-  };

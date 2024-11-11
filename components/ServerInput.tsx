@@ -16,6 +16,8 @@ function ServerInput(props: {
   onAdd: (server: Server) => void;
   onRemove: (server: Server) => void;
 }) {
+  const [savedServers, setSavedServers] = useState<Server[]>([]);
+  const [selectedSavedServer, setSelectedSavedServer] = useState<string>("");
   const [focusedItem, setFocusedItem] = useState<TreeItemIndex>();
   const [expandedItems, setExpandedItems] = useState<TreeItemIndex[]>([]);
   const [selectedItems, setSelectedItems] = useState<TreeItemIndex[]>([]);
@@ -45,6 +47,27 @@ function ServerInput(props: {
   useEffect(() => {
     setServers(props.servers ?? []);
   }, [props.servers]);
+
+  useEffect(() => {
+    async function fetchSavedServers() {
+      try {
+        const response = await fetch("/api/servers");
+        if (!response.ok) throw new Error("Failed to fetch saved servers");
+        const data = await response.json();
+  
+        // Filter servers based on type (source or destination)
+        const filteredServers = data.filter(
+          (server: Server) =>
+            server.isSource === (props.type === "source")
+        );
+        setSavedServers(filteredServers);
+      } catch (error) {
+        console.error("Error fetching saved servers:", error);
+      }
+    }
+  
+    fetchSavedServers();
+  }, [props.type]);
 
   async function fetchDatabases(session_token: string) {
     if (!form.host || !session_token) {
@@ -177,6 +200,45 @@ function ServerInput(props: {
   if (inForm) {
     return (
       <div className="flex flex-col">
+
+        {/* Dropdown to select a saved server */}
+      {savedServers.length > 0 && (
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Select a Saved Server
+          </label>
+          <select
+            className="border rounded w-full py-2 px-3 text-gray-700 leading-tight"
+            value={selectedSavedServer}
+            onChange={(e) => {
+              const hostUrl = e.target.value;
+              setSelectedSavedServer(hostUrl);
+
+              // Find the selected server and prefill the form
+              const server = savedServers.find(
+                (s) => s.hostUrl === hostUrl
+              );
+              if (server) {
+                setForm((form) => ({
+                  ...form,
+                  host: server.hostUrl,
+                  email: server.email,
+                  password: server.password,
+                }));
+              }
+            }}
+          >
+            <option value="">-- Select a saved server --</option>
+            {savedServers.map((server) => (
+              <option key={server.hostUrl} value={server.hostUrl}>
+                {formatHostUrl(server.hostUrl)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2">Host</label>
           <input
