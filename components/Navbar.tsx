@@ -7,8 +7,15 @@ import { useState } from "react";
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
-
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
 
 export default function Navbar() {
   const { isAuthenticated, user, signOut } = useAuth();
@@ -22,16 +29,22 @@ export default function Navbar() {
   return (
     <nav className="bg-gray-800 shadow-md">
       <div className="container mx-auto flex justify-between items-center py-4 px-6">
-        <Link href="/" className="text-white font-bold text-lg">Metabase Manager</Link>
+        <Link href="/" className="text-white font-bold text-lg">
+          Metabase Manager
+        </Link>
         <NavigationMenu className="flex-grow flex justify-evenly items-center">
           <NavigationMenuList className="list-none flex w-full justify-around">
             <NavigationMenuItem>
-              <NavigationMenuLink href="/" className="text-white text-lg hover:text-gray-300">Home</NavigationMenuLink>
+              <NavigationMenuLink href="/" className="text-white text-lg hover:text-gray-300">
+                Home
+              </NavigationMenuLink>
             </NavigationMenuItem>
 
             {/* Dropdown for Public Dashboards */}
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="bg-gray-800 text-white text-lg hover:text-gray-300 px-2 py-1">Public Dashboards</NavigationMenuTrigger>
+              <NavigationMenuTrigger className="bg-gray-800 text-white text-lg hover:text-gray-300 px-2 py-1">
+                Public Dashboards
+              </NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr] list-none">
                   <ListItem href="/manipur" title="Manipur">
@@ -56,25 +69,52 @@ export default function Navbar() {
               </NavigationMenuContent>
             </NavigationMenuItem>
 
+            {/* New Query Creator Navigation Item */}
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                href="/query"
+                className="text-white text-lg hover:text-gray-300 px-2 py-1"
+              >
+                Query Creator
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+
             {/* Conditional buttons for Add Users and Add Servers */}
             {isAuthenticated && user?.role === "SUPER_USER" && (
               <NavigationMenuItem>
-                <NavigationMenuLink href="/superuser" className="text-white text-lg hover:text-gray-300 px-2 py-1">Add Users</NavigationMenuLink>
+                <NavigationMenuLink
+                  href="/superuser"
+                  className="text-white text-lg hover:text-gray-300 px-2 py-1"
+                >
+                  Add Users
+                </NavigationMenuLink>
               </NavigationMenuItem>
             )}
             {isAuthenticated && (
               <NavigationMenuItem>
-                <NavigationMenuLink href="/serverdetails" className="text-white text-lg hover:text-gray-300 px-2 py-1">Add Servers</NavigationMenuLink>
+                <NavigationMenuLink
+                  href="/serverdetails"
+                  className="text-white text-lg hover:text-gray-300 px-2 py-1"
+                >
+                  Add Servers
+                </NavigationMenuLink>
               </NavigationMenuItem>
             )}
 
             {/* Sign In/Sign Out Button */}
             <NavigationMenuItem>
               {isAuthenticated ? (
-                <button onClick={handleSignOut} className="bg-gray-800 text-white text-lg px-2 py-1 rounded-md hover:bg-gray-700">Sign Out</button>
+                <button
+                  onClick={handleSignOut}
+                  className="bg-gray-800 text-white text-lg px-2 py-1 rounded-md hover:bg-gray-700"
+                >
+                  Sign Out
+                </button>
               ) : (
                 <NavigationMenuLink href="/signin" className="text-white text-lg hover:text-gray-300">
-                  <button className="bg-gray-800 text-white text-lg px-2 py-1 rounded-md hover:bg-gray-700">Sign In</button>
+                  <button className="bg-gray-800 text-white text-lg px-2 py-1 rounded-md hover:bg-gray-700">
+                    Sign In
+                  </button>
                 </NavigationMenuLink>
               )}
             </NavigationMenuItem>
@@ -95,15 +135,13 @@ const ListItem = React.forwardRef<
         <a
           ref={ref}
           className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-lg",
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-700 hover:text-white focus:bg-gray-700 focus:text-white text-lg",
             className
           )}
           {...props}
         >
-          <div className="text-lg font-medium leading-none text-gray-500">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
+          <div className="text-lg font-medium leading-none text-gray-300">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-gray-400">{children}</p>
         </a>
       </NavigationMenuLink>
     </li>

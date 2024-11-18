@@ -3,6 +3,35 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 
+// Import shadcn components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Loader2 } from 'lucide-react'; // For loading spinner
 
 interface Server {
   id: number;
@@ -18,6 +47,7 @@ interface QueryResult {
 }
 
 const QueryPage = () => {
+  // State variables
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedServers, setSelectedServers] = useState<number[]>([]);
   const [query, setQuery] = useState('');
@@ -25,8 +55,12 @@ const QueryPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // New state variables
-  const [serverDatabases, setServerDatabases] = useState<{ [key: number]: any[] }>({});
-  const [selectedDatabaseIds, setSelectedDatabaseIds] = useState<{ [key: number]: number }>({});
+  const [serverDatabases, setServerDatabases] = useState<{
+    [key: number]: any[];
+  }>({});
+  const [selectedDatabaseIds, setSelectedDatabaseIds] = useState<{
+    [key: number]: number;
+  }>({});
 
   // Fetch servers from the API
   useEffect(() => {
@@ -55,7 +89,9 @@ const QueryPage = () => {
       for (const serverId of selectedServers) {
         if (!serverDatabases[serverId]) {
           try {
-            const response = await fetch(`/api/get-databases?serverId=${serverId}`);
+            const response = await fetch(
+              `/api/get-databases?serverId=${serverId}`
+            );
             const data = await response.json();
 
             if (!response.ok) {
@@ -71,7 +107,10 @@ const QueryPage = () => {
               }));
             }
           } catch (error) {
-            console.error(`Error fetching databases for server ${serverId}:`, error);
+            console.error(
+              `Error fetching databases for server ${serverId}:`,
+              error
+            );
             // Assign an empty array to prevent TypeError
             setServerDatabases((prev) => ({ ...prev, [serverId]: [] }));
           }
@@ -171,24 +210,26 @@ const QueryPage = () => {
     const { cols, rows } = data.data;
 
     return (
-      <table border="1" cellPadding="5" cellSpacing="0">
-        <thead>
-          <tr>
+      <Table>
+        <TableHeader>
+          <TableRow>
             {cols.map((col: any, index: number) => (
-              <th key={index}>{col.name}</th>
+              <TableHead key={index}>{col.name}</TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row: any[], rowIndex: number) => (
-            <tr key={rowIndex}>
+            <TableRow key={rowIndex}>
               {row.map((cell: any, cellIndex: number) => (
-                <td key={cellIndex}>{cell !== null ? cell.toString() : ''}</td>
+                <TableCell key={cellIndex}>
+                  {cell !== null ? cell.toString() : ''}
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     );
   };
 
@@ -220,7 +261,10 @@ const QueryPage = () => {
       });
 
       const worksheet = XLSX.utils.json_to_sheet(sheetData);
-      const sheetName = result.serverUrl.replace(/https?:\/\//, '').replace(/[^\w]/g, '_').substring(0, 31); // Sheet names max 31 chars
+      const sheetName = result.serverUrl
+        .replace(/https?:\/\//, '')
+        .replace(/[^\w]/g, '_')
+        .substring(0, 31); // Sheet names max 31 chars
       XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
     });
 
@@ -229,88 +273,131 @@ const QueryPage = () => {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Execute SQL Query Across Metabase Instances</h1>
-      <form onSubmit={handleSubmit} style={{ marginBottom: '2rem' }}>
-        <div>
-          <label htmlFor="query">SQL Query:</label>
-          <br />
-          <textarea
-            id="query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            rows={6}
-            cols={80}
-            placeholder="Enter your SQL query here"
-            required
-          ></textarea>
-        </div>
-        <div style={{ marginTop: '1rem' }}>
-          <h3>Select Servers and Databases:</h3>
-          {servers.map((server) => (
-            <div key={server.id} style={{ marginBottom: '1rem' }}>
-              <label>
-                <input
-                  type="checkbox"
-                  value={server.id}
-                  checked={selectedServers.includes(server.id)}
-                  onChange={() => handleServerSelection(server.id)}
-                />
-                {server.hostUrl}
-              </label>
-              {selectedServers.includes(server.id) && (
-                <div>
-                  {serverDatabases[server.id] === undefined ? (
-                    <p>Loading databases...</p>
-                  ) : Array.isArray(serverDatabases[server.id]) && serverDatabases[server.id].length > 0 ? (
-                    <label>
-                      Select Database:
-                      <select
-                        value={selectedDatabaseIds[server.id] || ''}
-                        onChange={(e) =>
-                          setSelectedDatabaseIds((prev) => ({
-                            ...prev,
-                            [server.id]: parseInt(e.target.value),
-                          }))
-                        }
-                      >
-                        {serverDatabases[server.id].map((db) => (
-                          <option key={db.id} value={db.id}>
-                            {db.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : (
-                    <p>No databases available or failed to fetch databases for this server.</p>
+    <div className="p-8">
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-2xl">
+            Execute SQL Query Across Metabase Instances
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <Label htmlFor="query">SQL Query:</Label>
+              <Textarea
+                id="query"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                rows={6}
+                placeholder="Enter your SQL query here"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">
+                Select Servers and Databases:
+              </h3>
+              {servers.map((server) => (
+                <div key={server.id} className="mb-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`server-${server.id}`}
+                      checked={selectedServers.includes(server.id)}
+                      onCheckedChange={() => handleServerSelection(server.id)}
+                    />
+                    <Label htmlFor={`server-${server.id}`}>
+                      {server.hostUrl}
+                    </Label>
+                  </div>
+                  {selectedServers.includes(server.id) && (
+                    <div className="ml-6 mt-2">
+                      {serverDatabases[server.id] === undefined ? (
+                        <p>Loading databases...</p>
+                      ) : Array.isArray(serverDatabases[server.id]) &&
+                        serverDatabases[server.id].length > 0 ? (
+                        <div className="flex items-center space-x-2">
+                          <Label>Select Database:</Label>
+                          <Select
+                            onValueChange={(value) =>
+                              setSelectedDatabaseIds((prev) => ({
+                                ...prev,
+                                [server.id]: parseInt(value),
+                              }))
+                            }
+                            value={
+                              selectedDatabaseIds[server.id]?.toString() || ''
+                            }
+                          >
+                            <SelectTrigger className="w-64">
+                              <SelectValue placeholder="Select a database" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {serverDatabases[server.id].map((db) => (
+                                <SelectItem
+                                  key={db.id}
+                                  value={db.id.toString()}
+                                >
+                                  {db.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <p>
+                          No databases available or failed to fetch databases
+                          for this server.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-        <button type="submit" style={{ marginTop: '1rem' }}>
-          Execute Query
-        </button>
-      </form>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Execute Query
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      {isLoading && <p>Executing query, please wait...</p>}
+      {isLoading && (
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Executing query, please wait...</span>
+        </div>
+      )}
 
       {queryResults.length > 0 && (
-        <div>
-          <h2>Query Results:</h2>
-          {queryResults.map((result) => (
-            <div key={result.serverId} style={{ marginBottom: '2rem' }}>
-              <h3>Server: {result.serverUrl}</h3>
-              {result.error ? (
-                <p style={{ color: 'red' }}>Error: {result.error}</p>
-              ) : (
-                <div>{renderTable(result.data)}</div>
-              )}
-            </div>
-          ))}
-          <button onClick={handleDownloadAll}>Download All Results as XLSX</button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Query Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {queryResults.map((result) => (
+              <div key={result.serverId} className="mb-8">
+                <h3 className="text-lg font-semibold">
+                  Server: {result.serverUrl}
+                </h3>
+                {result.error ? (
+                  <p className="text-red-500">Error: {result.error}</p>
+                ) : (
+                  <div className="overflow-auto">
+                    {renderTable(result.data)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+          <CardFooter>
+            <Button onClick={handleDownloadAll}>
+              Download All Results as Excel File
+            </Button>
+          </CardFooter>
+        </Card>
       )}
     </div>
   );
