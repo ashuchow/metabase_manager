@@ -1,0 +1,4 @@
+Changes Made/Files/Routes Added:
+1. auth/signin - route file for signing in using simple prisma stored username and password
+2. servers - route file set up for GET, POST, DELETE requests for metabase servers for a given signed in user (passwords currently saved without hashing due to need)
+3. users - route file set up for POST request for user creation (only available for superuser role)

@@ -1,0 +1,5 @@
+Changes Made/Files added:
+1. Updated ServerInput.tsx to allow for choosing user added servers through drop down menu, filtered by host or destination servers
+2. Added Navbar component to show pages for Home, embedded public dashboards, adding servers, conditional button for adding users, sign in/sign out
+3. Added component for sign in page
+4. Set up directory for shadcn UI

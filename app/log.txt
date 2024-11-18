@@ -1,0 +1,8 @@
+Changes made/Files/Folders Created:
+1. Dynamic Dashboard directory + page created for embedded views of public metabase dashboards
+2. api/.. - View log.txt in api directory
+3. sigin/ - created sign in page with relevant component under @/components to enable access restriction
+4. serverdetails/ - created page for adding metabase servers + username details for signed in username
+5. superuser/ created restricted page (available only for superuser users) to create new users\
+6. page.tsx - added check through useAuth() to ensure main page is accessible by signed in users only
+7. @components/ - View log.txt in components directory
