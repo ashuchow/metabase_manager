@@ -5,11 +5,18 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    const { query, serverDatabaseSelections } = await request.json();
+    const { query, serverDatabaseSelections, userId } = await request.json();
 
     if (!query || !serverDatabaseSelections || !Array.isArray(serverDatabaseSelections)) {
       return NextResponse.json(
         { error: 'Invalid request data' },
+        { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
         { status: 400 }
       );
     }
@@ -19,10 +26,10 @@ export async function POST(request: Request) {
     for (const selection of serverDatabaseSelections) {
       const { serverId, databaseId } = selection;
 
-      // Fetch server credentials
+      // Fetch server credentials based on userId and serverId
       const userServer = await prisma.userMetabaseServer.findUnique({
         where: {
-          userId_serverId: { userId: 1, serverId }, // Replace with actual user ID
+          userId_serverId: { userId, serverId },
         },
         include: {
           server: true,
@@ -135,7 +142,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(results, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error executing queries:', error);
     return NextResponse.json(
       { error: 'Failed to execute queries' },

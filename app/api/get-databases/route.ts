@@ -6,16 +6,30 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const serverId = parseInt(searchParams.get('serverId') || '');
+    const serverIdParam = searchParams.get('serverId');
+    const userIdParam = searchParams.get('userId');
+
+    const serverId = serverIdParam ? parseInt(serverIdParam) : null;
+    const userId = userIdParam ? parseInt(userIdParam) : null;
 
     if (!serverId) {
-      return NextResponse.json({ error: 'Server ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Server ID is required' },
+        { status: 400 }
+      );
     }
 
-    // Fetch server credentials
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch server credentials based on userId and serverId
     const userServer = await prisma.userMetabaseServer.findUnique({
       where: {
-        userId_serverId: { userId: 1, serverId }, // Replace with actual user ID if necessary
+        userId_serverId: { userId, serverId },
       },
       include: {
         server: true,
@@ -23,7 +37,7 @@ export async function GET(request: Request) {
     });
 
     if (!userServer) {
-      console.error(`No userServer found for userId: 1, serverId: ${serverId}`);
+      console.error(`No userServer found for userId: ${userId}, serverId: ${serverId}`);
       return NextResponse.json({ error: 'Server not found' }, { status: 404 });
     }
 

@@ -33,6 +33,9 @@ import {
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react'; // For loading spinner
 
+// Import the useAuth hook
+import { useAuth } from '@/context/AuthContext'; // Adjust the import path as necessary
+
 interface Server {
   id: number;
   hostUrl: string;
@@ -47,6 +50,9 @@ interface QueryResult {
 }
 
 const QueryPage = () => {
+  const { user } = useAuth(); // Get the authenticated user
+  const userId = user?.id;
+
   // State variables
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedServers, setSelectedServers] = useState<number[]>([]);
@@ -65,8 +71,13 @@ const QueryPage = () => {
   // Fetch servers from the API
   useEffect(() => {
     const fetchServers = async () => {
+      if (!userId) {
+        console.error('User is not authenticated.');
+        return;
+      }
+
       try {
-        const response = await fetch('/api/servers');
+        const response = await fetch(`/api/servers?userId=${userId}`);
         const data = await response.json();
         // Exclude credentials on the client side
         const sanitizedServers = data.map((server: any) => ({
@@ -81,16 +92,21 @@ const QueryPage = () => {
     };
 
     fetchServers();
-  }, []);
+  }, [userId]);
 
   // Fetch databases when servers are selected
   useEffect(() => {
     const fetchDatabasesForServers = async () => {
+      if (!userId) {
+        console.error('User is not authenticated.');
+        return;
+      }
+
       for (const serverId of selectedServers) {
         if (!serverDatabases[serverId]) {
           try {
             const response = await fetch(
-              `/api/get-databases?serverId=${serverId}`
+              `/api/get-databases?userId=${userId}&serverId=${serverId}`
             );
             const data = await response.json();
 
@@ -121,7 +137,7 @@ const QueryPage = () => {
     if (selectedServers.length > 0) {
       fetchDatabasesForServers();
     }
-  }, [selectedServers]);
+  }, [selectedServers, serverDatabases, userId]);
 
   // Handle server selection
   const handleServerSelection = (serverId: number) => {
@@ -166,6 +182,11 @@ const QueryPage = () => {
       }
     }
 
+    if (!userId) {
+      alert('User is not authenticated.');
+      return;
+    }
+
     setIsLoading(true);
     setQueryResults([]);
 
@@ -181,6 +202,7 @@ const QueryPage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          userId, // Pass userId in the request body
           query,
           serverDatabaseSelections,
         }),
@@ -376,6 +398,11 @@ const QueryPage = () => {
           <CardHeader>
             <CardTitle className="text-xl">Query Results</CardTitle>
           </CardHeader>
+          <CardFooter>
+            <Button onClick={handleDownloadAll}>
+              Download All Results as Excel File
+            </Button>
+          </CardFooter>
           <CardContent>
             {queryResults.map((result) => (
               <div key={result.serverId} className="mb-8">
@@ -392,11 +419,6 @@ const QueryPage = () => {
               </div>
             ))}
           </CardContent>
-          <CardFooter>
-            <Button onClick={handleDownloadAll}>
-              Download All Results as Excel File
-            </Button>
-          </CardFooter>
         </Card>
       )}
     </div>
