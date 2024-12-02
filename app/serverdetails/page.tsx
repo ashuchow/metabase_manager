@@ -105,12 +105,20 @@ export default function MetabaseServersPage() {
     }
   };
 
-  // Function to handle server deletion
   const handleDelete = async (serverId) => {
     try {
-      const res = await fetch(`/api/servers?serverId=${serverId}`, {
-        method: "DELETE",
-      });
+      if (!user?.id) {
+        setErrorState("User not authenticated.");
+        return;
+      }
+  
+      const res = await fetch(
+        `/api/servers?serverId=${serverId}&userId=${user.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+  
       if (res.ok) {
         setServers((prevServers) =>
           prevServers.filter((server) => server.id !== serverId)
@@ -125,6 +133,7 @@ export default function MetabaseServersPage() {
       setErrorState("Failed to delete server.");
     }
   };
+  
 
   // Group servers into source and destination
   const sourceServers = servers.filter((server) => server.isSource);

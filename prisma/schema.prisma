@@ -50,13 +50,12 @@ enum Role {
 model MetabaseServer {
   id                 Int                  @id @default(autoincrement())
   hostUrl            String               @unique  // Unique for each server
-  isSource           Boolean              // true for source server, false for destination server
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   userMetabaseServers UserMetabaseServer[]
 }
 
-// Join table to store user-specific credentials for each server
+// Join table to store user-specific credentials and server type
 model UserMetabaseServer {
   id          Int            @id @default(autoincrement())
   user        User           @relation(fields: [userId], references: [id])
@@ -65,6 +64,7 @@ model UserMetabaseServer {
   serverId    Int
   email       String         // User-specific email for this server
   password    String         // User-specific password for this server
+  isSource    Boolean        // User-specific server type
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
