@@ -7,16 +7,15 @@ export async function POST(request: Request) {
   try {
     const { query, serverDatabaseSelections, userId } = await request.json();
 
-    if (!query || !serverDatabaseSelections || !Array.isArray(serverDatabaseSelections)) {
+    // Validate input data
+    if (
+      !query ||
+      !serverDatabaseSelections ||
+      !Array.isArray(serverDatabaseSelections) ||
+      userId === undefined
+    ) {
       return NextResponse.json(
         { error: 'Invalid request data' },
-        { status: 400 }
-      );
-    }
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
         { status: 400 }
       );
     }
@@ -26,7 +25,7 @@ export async function POST(request: Request) {
     for (const selection of serverDatabaseSelections) {
       const { serverId, databaseId } = selection;
 
-      // Fetch server credentials based on userId and serverId
+      // Fetch user-specific server credentials
       const userServer = await prisma.userMetabaseServer.findUnique({
         where: {
           userId_serverId: { userId, serverId },
@@ -41,16 +40,16 @@ export async function POST(request: Request) {
           serverId,
           serverUrl: '',
           data: null,
-          error: 'Server not found',
+          error: 'Server not found for this user',
         });
         continue;
       }
 
       const server = {
-        id: userServer.server.id,
         hostUrl: userServer.server.hostUrl,
         email: userServer.email,
         password: userServer.password,
+        isSource: userServer.isSource, // User-specific isSource
       };
 
       try {
@@ -75,25 +74,7 @@ export async function POST(request: Request) {
         const authData = await authResponse.json();
         const token = authData.id;
 
-        console.log(`Authenticated with server ${server.hostUrl}, token: ${token}`);
-
-        // Optionally, check Metabase version
-        const propertiesResponse = await fetch(`${server.hostUrl}/api/session/properties`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Metabase-Session': token,
-          },
-        });
-
-        if (propertiesResponse.ok) {
-          const propertiesData = await propertiesResponse.json();
-          console.log(`Metabase version: ${propertiesData['metabase-version']}`);
-        } else {
-          console.warn(`Failed to get Metabase version from server ${server.hostUrl}`);
-        }
-
-        // Execute SQL query using the selected database ID
+        // Execute the query without pagination
         const queryBody = {
           database: databaseId,
           type: 'native',
@@ -104,18 +85,14 @@ export async function POST(request: Request) {
 
         console.log(`Executing query on server ${server.hostUrl} with database ID ${databaseId}:`, queryBody);
 
-        // Use /api/dataset instead of /api/dataset/sql
-        const queryResponse = await fetch(
-          `${server.hostUrl}/api/dataset`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Metabase-Session': token,
-            },
-            body: JSON.stringify(queryBody),
-          }
-        );
+        const queryResponse = await fetch(`${server.hostUrl}/api/dataset`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Metabase-Session': token,
+          },
+          body: JSON.stringify(queryBody),
+        });
 
         if (!queryResponse.ok) {
           const errorData = await queryResponse.json();
@@ -125,15 +102,22 @@ export async function POST(request: Request) {
 
         const queryData = await queryResponse.json();
 
+        if (!queryData.data || !queryData.data.rows || !queryData.data.cols) {
+          throw new Error('Invalid response format from Metabase');
+        }
+
         results.push({
-          serverId: server.id,
+          serverId: serverId,
           serverUrl: server.hostUrl,
-          data: queryData,
+          data: {
+            cols: queryData.data.cols,
+            rows: queryData.data.rows,
+          },
         });
       } catch (error: any) {
         console.error(`Error querying server ${server.hostUrl}:`, error);
         results.push({
-          serverId: server.id,
+          serverId: serverId,
           serverUrl: server.hostUrl,
           data: null,
           error: error.message,

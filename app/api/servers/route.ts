@@ -3,13 +3,72 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// export async function GET(request: Request) {
+//   try {
+//     const { searchParams } = new URL(request.url);
+//     const userIdParam = searchParams.get('userId');
+
+//     console.log("Received GET request with userId:", userIdParam);
+
+//     // Validate userId
+//     if (!userIdParam) {
+//       console.log("User ID is missing.");
+//       return NextResponse.json(
+//         { error: 'User ID is required' },
+//         { status: 400 }
+//       );
+//     }
+
+//     const userId = parseInt(userIdParam, 10);
+//     if (isNaN(userId)) {
+//       console.log("Invalid User ID:", userIdParam);
+//       return NextResponse.json(
+//         { error: 'Invalid User ID' },
+//         { status: 400 }
+//       );
+//     }
+
+//     // Fetch all servers associated with the user
+//     const userServers = await prisma.userMetabaseServer.findMany({
+//       where: {
+//         userId: userId,
+//       },
+//       include: {
+//         server: true, // Include server details
+//       },
+//     });
+
+//     console.log("Fetched userServers:", userServers);
+
+//     // Format the response data to include necessary fields
+//     const formattedServers = userServers.map((userServer) => ({
+//       id: userServer.server.id, // Server ID
+//       hostUrl: userServer.server.hostUrl,
+//       isSource: userServer.isSource, // User-specific isSource
+//       email: userServer.email,
+//       password: userServer.password
+//       // Exclude email and password for security
+//     }));
+
+//     console.log("Formatted Servers:", formattedServers);
+
+//     return NextResponse.json(formattedServers, { status: 200 });
+//   } catch (error: any) {
+//     console.error("Error in GET /api/servers:", error);
+//     return NextResponse.json({ error: "Failed to fetch servers" }, { status: 500 });
+//   }
+// }
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userIdParam = searchParams.get('userId');
 
+    console.log("Received GET request with userId:", userIdParam);
+
     // Validate userId
     if (!userIdParam) {
+      console.log("User ID is missing.");
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -18,6 +77,7 @@ export async function GET(request: Request) {
 
     const userId = parseInt(userIdParam, 10);
     if (isNaN(userId)) {
+      console.log("Invalid User ID:", userIdParam);
       return NextResponse.json(
         { error: 'Invalid User ID' },
         { status: 400 }
@@ -34,20 +94,22 @@ export async function GET(request: Request) {
       },
     });
 
-    // Format the response data to include necessary fields
+    console.log("Fetched userServers:", userServers);
+
+    // Include email and password now
     const formattedServers = userServers.map((userServer) => ({
-      id: userServer.server.id, // Include server ID
+      id: userServer.server.id, // Server ID
       hostUrl: userServer.server.hostUrl,
+      isSource: userServer.isSource, // User-specific isSource
       email: userServer.email,
-      // **Security Warning:** Including plain-text passwords is not recommended.
-      // Consider encrypting passwords or handling them securely.
-      // password: userServer.password,
-      isSource: userServer.server.isSource,
+      password: userServer.password
     }));
+
+    console.log("Formatted Servers:", formattedServers);
 
     return NextResponse.json(formattedServers, { status: 200 });
   } catch (error: any) {
-    console.error("Error fetching user servers:", error);
+    console.error("Error in GET /api/servers:", error);
     return NextResponse.json({ error: "Failed to fetch servers" }, { status: 500 });
   }
 }
@@ -56,42 +118,42 @@ export async function POST(request: Request) {
   try {
     const { hostUrl, email, password, isSource, userId } = await request.json();
 
+    console.log("Received POST request with data:", { hostUrl, email, isSource, userId });
+
     // Validate input data
-    if (!hostUrl || !email || !password || userId === undefined) {
+    if (!hostUrl || !email || !password || isSource === undefined || userId === undefined) {
+      console.log("Missing required fields in POST request.");
       return NextResponse.json(
-        { error: 'hostUrl, email, password, and userId are required' },
+        { error: 'hostUrl, email, password, isSource, and userId are required' },
         { status: 400 }
       );
     }
 
-    // **Security Recommendation:** 
-    // - **Do not store passwords in plain text.**
-    // - Use hashing algorithms like bcrypt to hash passwords before storing.
-    // - If you need to decrypt them later, consider using encryption instead of hashing.
-
     // Upsert the MetabaseServer (only one entry per unique hostUrl)
     const server = await prisma.metabaseServer.upsert({
       where: { hostUrl },
-      update: { isSource }, // Update only if hostUrl already exists
-      create: { hostUrl, isSource },
+      update: { /* No global fields to update */ },
+      create: { hostUrl },
     });
 
     console.log("Server upserted successfully:", server);
 
-    // Upsert the UserMetabaseServer with user-specific email and password
+    // Upsert the UserMetabaseServer with user-specific email, password, and isSource
     const userServer = await prisma.userMetabaseServer.upsert({
       where: {
         userId_serverId: { userId: userId, serverId: server.id },
       },
       update: {
         email,
-        password, // **Security Warning:** Store passwords securely
+        password, // Note: Storing plain-text passwords is not recommended
+        isSource,
       },
       create: {
         userId: userId,
         serverId: server.id,
         email,
-        password, // **Security Warning:** Store passwords securely
+        password, // Note: Storing plain-text passwords is not recommended
+        isSource,
       },
     });
 
@@ -99,7 +161,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(userServer, { status: 201 });
   } catch (error: any) {
-    console.error("Error saving Metabase server:", error);
+    console.error("Error in POST /api/servers:", error);
     return NextResponse.json({ error: "Failed to save Metabase server" }, { status: 500 });
   }
 }
@@ -110,8 +172,11 @@ export async function DELETE(request: Request) {
     const serverIdParam = searchParams.get('serverId');
     const userIdParam = searchParams.get('userId');
 
+    console.log("Received DELETE request with serverId:", serverIdParam, "and userId:", userIdParam);
+
     // Validate serverId and userId
     if (!serverIdParam || !userIdParam) {
+      console.log("Missing serverId or userId in DELETE request.");
       return NextResponse.json(
         { error: "Both serverId and userId are required" },
         { status: 400 }
@@ -122,6 +187,7 @@ export async function DELETE(request: Request) {
     const userId = parseInt(userIdParam, 10);
 
     if (isNaN(serverId) || isNaN(userId)) {
+      console.log("Invalid serverId or userId:", serverIdParam, userIdParam);
       return NextResponse.json(
         { error: "Invalid serverId or userId" },
         { status: 400 }
@@ -155,7 +221,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ message: "Server deleted successfully" }, { status: 200 });
   } catch (error: any) {
-    console.error("Error deleting Metabase server:", error);
+    console.error("Error in DELETE /api/servers:", error);
     return NextResponse.json({ error: "Failed to delete Metabase server" }, { status: 500 });
   }
 }

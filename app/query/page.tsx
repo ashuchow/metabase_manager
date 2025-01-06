@@ -1,3 +1,5 @@
+// /pages/query.tsx
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -5,7 +7,6 @@ import * as XLSX from 'xlsx';
 
 // Import shadcn components
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -45,14 +46,17 @@ interface Server {
 interface QueryResult {
   serverId: number;
   serverUrl: string;
-  data: any;
+  data: {
+    cols: Array<{ name: string; display_name: string; type: string }>;
+    rows: any[][];
+  };
   error?: string;
 }
 
 const QueryPage = () => {
   const { user } = useAuth(); // Get the authenticated user
   const userId = user?.id;
-
+  console.log("Current User ID:", user);
   // State variables
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedServers, setSelectedServers] = useState<number[]>([]);
@@ -79,6 +83,7 @@ const QueryPage = () => {
       try {
         const response = await fetch(`/api/servers?userId=${userId}`);
         const data = await response.json();
+
         // Exclude credentials on the client side
         const sanitizedServers = data.map((server: any) => ({
           id: server.id,
@@ -91,7 +96,9 @@ const QueryPage = () => {
       }
     };
 
-    fetchServers();
+    if (userId) {
+      fetchServers();
+    }
   }, [userId]);
 
   // Fetch databases when servers are selected
@@ -106,7 +113,7 @@ const QueryPage = () => {
         if (!serverDatabases[serverId]) {
           try {
             const response = await fetch(
-              `/api/get-databases?userId=${userId}&serverId=${serverId}`
+              `/api/get-databases?serverId=${serverId}&userId=${userId}`
             );
             const data = await response.json();
 
@@ -225,11 +232,11 @@ const QueryPage = () => {
 
   // Function to render the table
   const renderTable = (data: any) => {
-    if (!data || !data.data || !data.data.rows || !data.data.cols) {
+    if (!data || !data.cols || !data.rows) {
       return <p>No data available.</p>;
     }
 
-    const { cols, rows } = data.data;
+    const { cols, rows } = data;
 
     return (
       <Table>
@@ -266,11 +273,11 @@ const QueryPage = () => {
       }
 
       const data = result.data;
-      if (!data || !data.data || !data.data.rows || !data.data.cols) {
+      if (!data || !data.rows || !data.cols) {
         return;
       }
 
-      const { cols, rows } = data.data;
+      const { cols, rows } = data;
 
       // Create an array of objects for XLSX
       const sheetData = rows.map((row: any[]) => {
@@ -296,6 +303,7 @@ const QueryPage = () => {
 
   return (
     <div className="p-8">
+      {/* Query Execution Card */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-2xl">
@@ -386,6 +394,7 @@ const QueryPage = () => {
         </CardContent>
       </Card>
 
+      {/* Loading Indicator */}
       {isLoading && (
         <div className="flex items-center space-x-2">
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -393,6 +402,7 @@ const QueryPage = () => {
         </div>
       )}
 
+      {/* Query Results Card */}
       {queryResults.length > 0 && (
         <Card>
           <CardHeader>
@@ -423,6 +433,6 @@ const QueryPage = () => {
       )}
     </div>
   );
-};
+}
 
 export default QueryPage;

@@ -1,3 +1,5 @@
+// /pages/metabase-servers.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,15 +32,22 @@ import {
 } from "@/components/ui/card";
 
 const serverSchema = z.object({
-  hostUrl: z.string(),
-  email: z.string(),
-  password: z.string(),
+  hostUrl: z.string().url({ message: "Invalid URL" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   isSource: z.boolean(),
 });
 
+type ServerInput = z.infer<typeof serverSchema>;
+
 export default function MetabaseServersPage() {
-  const { user } = useAuth();
-  const formMethods = useForm({
+  const { user, isAuthenticated, loading } = useAuth();
+  const userId = user?.id;
+  const [servers, setServers] = useState([]); // State to hold the user's servers
+  const [success, setSuccess] = useState("");
+  const [error, setErrorState] = useState("");
+  console.log("USER = " , user)
+  const formMethods = useForm<ServerInput>({
     resolver: zodResolver(serverSchema),
     defaultValues: {
       hostUrl: "",
@@ -55,37 +64,52 @@ export default function MetabaseServersPage() {
     reset,
     formState: { errors },
   } = formMethods;
-  const [servers, setServers] = useState([]); // State to hold the user's servers
-  const [success, setSuccess] = useState("");
-  const [error, setErrorState] = useState("");
 
-  // Fetch servers associated with the user on component load
   useEffect(() => {
+    if (loading) return; // Do nothing while loading
+
+    if (!isAuthenticated) {
+      setErrorState("You must be signed in to view this page.");
+      return;
+    }
+
     const fetchServers = async () => {
       try {
-        const res = await fetch(`/api/servers?userId=${user?.id}`);
+        const res = await fetch(`/api/servers?userId=${userId}`);
         if (!res.ok) throw new Error("Failed to fetch servers");
         const data = await res.json();
-        setServers(data);
-      } catch (err) {
+
+        if (Array.isArray(data)) {
+          setServers(data);
+          setErrorState("");
+        } else {
+          console.error("Unexpected data format:", data);
+          setErrorState("Failed to load servers");
+        }
+      } catch (err: any) {
         console.error("Failed to load servers", err);
         setErrorState("Failed to load servers");
       }
     };
 
-    if (user?.id) {
+    if (userId) {
       fetchServers();
     }
-  }, [user]);
+  }, [userId, isAuthenticated, loading]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: ServerInput) => {
+    if (!userId) {
+      setError("root", { message: "User ID is missing" });
+      return;
+    }
+
     try {
       const res = await fetch("/api/servers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...data, userId: user?.id }),
+        body: JSON.stringify({ ...data, userId }), // Include userId in the request body
       });
 
       if (res.ok) {
@@ -105,43 +129,57 @@ export default function MetabaseServersPage() {
     }
   };
 
-  const handleDelete = async (serverId) => {
+  // Function to handle server deletion
+  const handleDelete = async (serverId: number) => {
+    if (!userId) {
+      setErrorState("User ID is missing");
+      return;
+    }
+
     try {
-      if (!user?.id) {
-        setErrorState("User not authenticated.");
-        return;
-      }
-  
-      const res = await fetch(
-        `/api/servers?serverId=${serverId}&userId=${user.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-  
+      const res = await fetch(`/api/servers?serverId=${serverId}&userId=${userId}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         setServers((prevServers) =>
           prevServers.filter((server) => server.id !== serverId)
         );
         setSuccess("Server deleted successfully!");
+        setErrorState("");
       } else {
         const result = await res.json();
         setErrorState(result.error || "Failed to delete server.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting server:", err);
       setErrorState("Failed to delete server.");
     }
   };
-  
 
   // Group servers into source and destination
   const sourceServers = servers.filter((server) => server.isSource);
   const destinationServers = servers.filter((server) => !server.isSource);
 
+  // Handle loading and authentication states
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>You must be signed in to view this page.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col lg:flex-row justify-center items-start lg:items-center h-screen space-x-0 lg:space-x-8 px-8">
-      {/* First Card */}
+    <div className="flex flex-col lg:flex-row justify-center items-start lg:items-center h-screen space-x-0 lg:space-x-8 px-8 overflow-auto">
+      {/* First Card: Add Server */}
       <div className="flex-1 max-w-2xl mb-8 lg:mb-0">
         <Card className="w-full">
           <CardHeader>
@@ -209,19 +247,17 @@ export default function MetabaseServersPage() {
                       <FormLabel>Server Type</FormLabel>
                       <FormControl>
                         <Select
-                          value={field.value ? "source" : "destination"}
                           onValueChange={(value) =>
                             field.onChange(value === "source")
                           }
+                          value={field.value ? "source" : "destination"}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select server type" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="source">Source</SelectItem>
-                            <SelectItem value="destination">
-                              Destination
-                            </SelectItem>
+                            <SelectItem value="destination">Destination</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -240,7 +276,7 @@ export default function MetabaseServersPage() {
         </Card>
       </div>
 
-      {/* Second Card */}
+      {/* Second Card: List of Servers */}
       <div className="flex-1 max-w-2xl">
         <Card className="w-full">
           <CardHeader>
@@ -278,9 +314,7 @@ export default function MetabaseServersPage() {
 
             {/* Destination Servers */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">
-                Destination Servers
-              </h2>
+              <h2 className="text-lg font-semibold mb-2">Destination Servers</h2>
               {destinationServers.length > 0 ? (
                 <ul>
                   {destinationServers.map((server) => (
