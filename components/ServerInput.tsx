@@ -5,12 +5,7 @@ import { Database, Server } from "../types";
 import toast from "react-hot-toast";
 import { login, collectionList, databaseList, dbSchemaFetch } from "@/app/api";
 import { formatHostUrl } from "@/app/utils";
-import {
-  Tree,
-  InteractionMode,
-  ControlledTreeEnvironment,
-  TreeItemIndex,
-} from "react-complex-tree";
+import { Tree, InteractionMode, ControlledTreeEnvironment, TreeItemIndex } from "react-complex-tree";
 import "react-complex-tree/lib/style-modern.css";
 import { useAuth } from "@/context/AuthContext"; // Import the useAuth hook
 
@@ -40,7 +35,7 @@ function ServerInput(props: {
   const [collectionsList, setCollectionsList] = useState<Database[]>([]);
   const [disableAddButton, setDisableAddButton] = useState(false);
   const [form, setForm] = useState({
-    hostUrl: "", // Changed from 'host' to 'hostUrl'
+    host: "", // Changed from 'host' to 'host'
     session_token: "",
     excludedIDs: "",
     email: "",
@@ -51,9 +46,7 @@ function ServerInput(props: {
     collectionTree: null,
     databaseList: [],
   });
-  const [loginMethod, setLoginMethod] = useState<"session" | "password">(
-    "password"
-  );
+  const [loginMethod, setLoginMethod] = useState<"session" | "password">("password");
 
   useEffect(() => {
     if (collectionsList.length > 0) {
@@ -70,9 +63,7 @@ function ServerInput(props: {
   useEffect(() => {
     async function fetchSavedServers() {
       if (!userId) {
-        console.error(
-          "User ID is not available. Ensure the user is authenticated."
-        );
+        console.error("User ID is not available. Ensure the user is authenticated.");
         return;
       }
       try {
@@ -94,9 +85,7 @@ function ServerInput(props: {
             errorData = await response.text();
           }
           console.error("Failed to fetch saved servers:", errorData);
-          toast.error(
-            "Unable to fetch saved servers. Please try again later."
-          );
+          toast.error("Unable to fetch saved servers. Please try again later.");
           throw new Error("Failed to fetch saved servers");
         }
 
@@ -110,20 +99,21 @@ function ServerInput(props: {
           return;
         }
 
-        // Filter servers based on type (source or destination)
-        const filteredServers = data.filter(
-          (server: Server) =>
-            server.isSource === (props.type === "source")
-        );
+        // **Map 'hostUrl' to 'host' if necessary**
+        const mappedServers = data.map((server: any) => ({
+          ...server,
+          host: server.hostUrl || server.host, // Prefer 'hostUrl' if defined
+        }));
+
+        // **Filter servers based on type (source or destination)**
+        const filteredServers = mappedServers.filter((server: Server) => server.isSource === (props.type === "source"));
         console.log(`Filtered Servers (${props.type}):`, filteredServers);
 
         setSavedServers(filteredServers);
         // No need to setServers locally
       } catch (error: any) {
         console.error("Error fetching saved servers:", error);
-        toast.error(
-          "Unable to fetch saved servers. Please try again later."
-        );
+        toast.error("Unable to fetch saved servers. Please try again later.");
       }
     }
 
@@ -133,23 +123,20 @@ function ServerInput(props: {
   }, [props.type, userId, isAuthenticated, loading]);
 
   async function fetchDatabases(session_token: string) {
-    if (!form.hostUrl || !session_token) {
+    if (!form.host || !session_token) {
       toast.error("Host and Session Token are required");
       return;
     }
-    let hostUrl = form.hostUrl;
-    if (!hostUrl.startsWith("http")) hostUrl = "https://" + hostUrl;
-    if (hostUrl.endsWith("/")) hostUrl = hostUrl.slice(0, -1);
+    let host = form.host;
+    if (!host.startsWith("http")) host = "https://" + host;
+    if (host.endsWith("/")) host = host.slice(0, -1);
 
     try {
-      const databases = await toast.promise(
-        databaseList(hostUrl, session_token),
-        {
-          loading: "Fetching databases",
-          success: "Databases fetched!",
-          error: "Error fetching databases",
-        }
-      );
+      const databases = await toast.promise(databaseList(host, session_token), {
+        loading: "Fetching databases",
+        success: "Databases fetched!",
+        error: "Error fetching databases",
+      });
       if (databases.data.length === 0) {
         toast.error("No databases found on the server");
         return;
@@ -163,16 +150,13 @@ function ServerInput(props: {
     }
   }
 
-  async function fetchSessionToken(hostUrl: string) {
+  async function fetchSessionToken(host: string) {
     try {
-      const session_token = await toast.promise(
-        login(hostUrl, form.email, form.password),
-        {
-          loading: "Fetching session token from login credentials",
-          success: "Session token fetched!",
-          error: "Error fetching session token! Check your credentials",
-        }
-      );
+      const session_token = await toast.promise(login(host, form.email, form.password), {
+        loading: "Fetching session token from login credentials",
+        success: "Session token fetched!",
+        error: "Error fetching session token! Check your credentials",
+      });
       setForm((form) => ({ ...form, session_token: session_token["id"] }));
       console.log("Session Token Obtained:", session_token["id"]);
       return session_token["id"];
@@ -183,23 +167,20 @@ function ServerInput(props: {
   }
 
   async function fetchCollections(session_token: string) {
-    if (!form.hostUrl || !session_token) {
+    if (!form.host || !session_token) {
       toast.error("Host and Session Token are required");
       return;
     }
-    let hostUrl = form.hostUrl;
-    if (!hostUrl.startsWith("http")) hostUrl = "https://" + hostUrl;
-    if (hostUrl.endsWith("/")) hostUrl = hostUrl.slice(0, -1);
+    let host = form.host;
+    if (!host.startsWith("http")) host = "https://" + host;
+    if (host.endsWith("/")) host = host.slice(0, -1);
 
     try {
-      const collections = await toast.promise(
-        collectionList(hostUrl, session_token),
-        {
-          loading: "Fetching collections",
-          success: "Collections fetched!",
-          error: "Error fetching collections",
-        }
-      );
+      const collections = await toast.promise(collectionList(host, session_token), {
+        loading: "Fetching collections",
+        success: "Collections fetched!",
+        error: "Error fetching collections",
+      });
       setCollectionsList(collections);
       setForm((form) => ({ ...form, collectionTree: collections }));
       console.log("Fetched Collections:", collections);
@@ -210,17 +191,15 @@ function ServerInput(props: {
   }
 
   async function addServerClick() {
-    let hostUrl = form.hostUrl;
-    if (!hostUrl.startsWith("http")) hostUrl = "https://" + hostUrl;
-    if (hostUrl.endsWith("/")) hostUrl = hostUrl.slice(0, -1);
+    let host = form.host;
+    if (!host.startsWith("http")) host = "https://" + host;
+    if (host.endsWith("/")) host = host.slice(0, -1);
 
-    console.log("Attempting to add server with hostUrl:", hostUrl);
+    console.log("Attempting to add server with host:", host);
     console.log("Form Data Before Adding:", form);
 
     // Check for duplicates
-    const isDuplicate = props.servers.some(
-      (server) => server.hostUrl === hostUrl
-    );
+    const isDuplicate = props.servers.some((server) => server.host === host);
     if (isDuplicate) {
       toast.error("This server has already been added.");
       return;
@@ -229,22 +208,17 @@ function ServerInput(props: {
     if (form.database !== "-1") {
       setDisableAddButton(true);
       try {
-        const schema = await toast.promise(
-          dbSchemaFetch(hostUrl, form.session_token, form.database),
-          {
-            loading: "Fetching database schema",
-            success: "Database schema fetched!",
-            error: "Error fetching database schema",
-          }
-        );
+        const schema = await toast.promise(dbSchemaFetch(host, form.session_token, form.database), {
+          loading: "Fetching database schema",
+          success: "Database schema fetched!",
+          error: "Error fetching database schema",
+        });
         console.log("Fetched Database Schema:", schema);
 
-        const excludedIDs = form.excludedIDs
-          .split(",")
-          .filter((id) => id.trim() !== "");
+        const excludedIDs = form.excludedIDs.split(",").filter((id) => id.trim() !== "");
         const newServer: Server = {
           ...form,
-          hostUrl, // Use 'hostUrl' instead of 'host'
+          host, // Use 'host' instead of 'host'
           schema,
           excludedIDs,
         };
@@ -266,7 +240,7 @@ function ServerInput(props: {
     let session_token = form.session_token;
 
     if (loginMethod === "password") {
-      session_token = await fetchSessionToken(hostUrl);
+      session_token = await fetchSessionToken(host);
       if (!session_token) return;
     }
 
@@ -279,7 +253,7 @@ function ServerInput(props: {
   function resetForm(showForm: boolean = true) {
     setInForm(showForm); // Show or hide the form based on the parameter
     setForm({
-      hostUrl: "",
+      host: "",
       session_token: "",
       email: "",
       password: "",
@@ -321,14 +295,12 @@ function ServerInput(props: {
   }
 
   // Handle server selection from dropdown
-  const handleServerSelect = (hostUrl: string) => {
-    const selectedServer = savedServers.find(
-      (server) => server.hostUrl === hostUrl
-    );
+  const handleServerSelect = (host: string) => {
+    const selectedServer = savedServers.find((server) => server.host === host);
     if (selectedServer) {
       console.log("Selected Server:", selectedServer);
       setForm({
-        hostUrl: selectedServer.hostUrl,
+        host: selectedServer.host,
         session_token: "", // Clear session token; user may need to re-authenticate
         excludedIDs: "",
         email: selectedServer.email,
@@ -340,7 +312,7 @@ function ServerInput(props: {
         databaseList: [],
       });
       console.log("Form Prefilled with Selected Server Data:", {
-        hostUrl: selectedServer.hostUrl,
+        host: selectedServer.host,
         email: selectedServer.email,
         // Password is omitted from logs for security reasons
       });
@@ -363,26 +335,24 @@ function ServerInput(props: {
           {/* Dropdown to select a saved server */}
           {savedServers.length > 0 ? (
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Add from Saved Servers
-              </label>
+              <label className="block text-gray-700 text-sm font-bold mb-2">Add from Saved Servers</label>
               <select
                 className="border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                 value={selectedSavedServer}
                 onChange={(e) => {
-                  const hostUrl = e.target.value;
-                  setSelectedSavedServer(hostUrl);
-                  console.log("Selected Saved Server:", hostUrl);
+                  const host = e.target.value;
+                  setSelectedSavedServer(host);
+                  console.log("Selected Saved Server:", host);
 
-                  handleServerSelect(hostUrl);
+                  handleServerSelect(host);
                 }}
               >
                 <option value="">-- Select a saved server --</option>
                 {savedServers.map((server) => {
-                  const formattedUrl = formatHostUrl(server.hostUrl);
+                  const formattedUrl = formatHostUrl(server.host);
                   console.log("Formatted Host URL:", formattedUrl);
                   return (
-                    <option key={server.hostUrl} value={server.hostUrl}>
+                    <option key={server.host} value={server.host}>
                       {formattedUrl}
                     </option>
                   );
@@ -395,19 +365,17 @@ function ServerInput(props: {
 
           {/* Host URL Input */}
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Host URL
-            </label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">Host URL</label>
             <input
               data-testid={`host-${props.type}`}
               className="border rounded w-full py-2 px-3 text-gray-700 leading-tight"
               type="text"
-              value={form.hostUrl}
+              value={form.host}
               onChange={(e) => {
                 console.log("Host Input Changed:", e.target.value);
                 setForm((form) => ({
                   ...form,
-                  hostUrl: e.target.value,
+                  host: e.target.value,
                 }));
               }}
               placeholder="https://server.metabase.tld"
@@ -424,19 +392,14 @@ function ServerInput(props: {
                 data-testid={`toggle-login-method-${props.type}`}
                 className="w-5 h-5 fill-current text-blue-500 hover:text-blue-300"
                 onClick={() => {
-                  const newMethod =
-                    loginMethod === "session" ? "password" : "session";
+                  const newMethod = loginMethod === "session" ? "password" : "session";
                   console.log(`Toggling login method to ${newMethod}`);
                   setLoginMethod(newMethod);
                 }}
                 type="button" // Prevent form submission
               >
                 {/* Icon can be customized */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
                   <path d="M20,12a1,1,0,0,0-1-1H11.41l2.3-2.29a1,1,0,1,0-1.42-1.42l-4,4a1,1,0,0,0-.21.33,1,1,0,0,0,0,.76,1,1,0,0,0,.21.33l4,4a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L11.41,13H19A1,1,0,0,0,20,12ZM17,2H7A3,3,0,0,0,4,5V19a3,3,0,0,0,3,3H17a3,3,0,0,0,3-3V16a1,1,0,0,0-2,0v3a1,1,0,0,1-1,1H7a1,1,0,0,1-1-1V5A1,1,0,0,1,7,4H17a1,1,0,0,1,1,1V8a1,1,0,0,0,2,0V5A3,3,0,0,0,17,2Z" />
                 </svg>
               </button>
@@ -490,9 +453,7 @@ function ServerInput(props: {
             )}
             {props.type === "destination" && (
               <>
-                <label className="block text-gray-700 text-sm font-bold my-2">
-                  Excluded Source Card Entity IDs
-                </label>
+                <label className="block text-gray-700 text-sm font-bold my-2">Excluded Source Card Entity IDs</label>
                 <input
                   className="border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                   type="text"
@@ -514,9 +475,7 @@ function ServerInput(props: {
           {/* Database Selection */}
           {databasesList.length > 0 && (
             <div className="relative w-full mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Database
-              </label>
+              <label className="block text-gray-700 text-sm font-bold mb-2">Database</label>
               <select
                 data-testid={`database-${props.type}`}
                 className="w-full bg-white border border-gray-400 hover:border-gray-500 px-4 py-2 pr-8 rounded shadow leading-tight"
@@ -541,9 +500,7 @@ function ServerInput(props: {
           {/* Collections Selection */}
           {collectionsList.length > 0 && (
             <div className="relative w-full mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Collections
-              </label>
+              <label className="block text-gray-700 text-sm font-bold mb-2">Collections</label>
               <div className="w-full border border-gray-400 rounded shadow leading-tight p-1">
                 <ControlledTreeEnvironment
                   items={{
@@ -551,9 +508,7 @@ function ServerInput(props: {
                     root: {
                       index: "root",
                       isFolder: true,
-                      children: collectionsList.map(
-                        (collection) => collection.id.toString()
-                      ),
+                      children: collectionsList.map((collection) => collection.id.toString()),
                       data: "All Collections",
                     },
                   }}
@@ -571,11 +526,7 @@ function ServerInput(props: {
                     setExpandedItems([...expandedItems, item.index]);
                   }}
                   onCollapseItem={(item) =>
-                    setExpandedItems(
-                      expandedItems.filter(
-                        (expandedItemIndex) => expandedItemIndex !== item.index
-                      )
-                    )
+                    setExpandedItems(expandedItems.filter((expandedItemIndex) => expandedItemIndex !== item.index))
                   }
                   onSelectItems={(items) => {
                     const selected = items[items.length - 1];
@@ -587,10 +538,7 @@ function ServerInput(props: {
                     }));
                   }}
                 >
-                  <Tree
-                    treeId={`collection-list-${props.type}`}
-                    rootItem="root"
-                  />
+                  <Tree treeId={`collection-list-${props.type}`} rootItem="root" />
                 </ControlledTreeEnvironment>
               </div>
             </div>
@@ -619,9 +567,7 @@ function ServerInput(props: {
               }}
               className="w-full rounded-md bg-[#1e6091] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#168aad] disabled:bg-gray-700 disabled:text-white"
             >
-              {form.database === "-1" || form.collection === "-1"
-                ? "Fetch Databases & Collections"
-                : "Add Server"}
+              {form.database === "-1" || form.collection === "-1" ? "Fetch Databases & Collections" : "Add Server"}
             </button>
           </div>
         </div>
@@ -634,7 +580,7 @@ function ServerInput(props: {
         >
           {console.log("Rendering servers:", props.servers)}
           {props.servers.map((server) => (
-            <div key={server.hostUrl} className="flex">
+            <div key={server.host} className="flex">
               <button
                 data-testid={`remove-${props.type}`}
                 type="button"
@@ -644,40 +590,25 @@ function ServerInput(props: {
                 }}
                 className="w-full items-center flex flex-col rounded-lg border-2 border-solid border-gray-300 py-11 px-2 text-center hover:border-red-400"
               >
-                <svg
-                  className="h-16 w-16"
-                  xmlns="http://www.w3.org/2000/svg"
-                  data-name="Layer 1"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="h-16 w-16" xmlns="http://www.w3.org/2000/svg" data-name="Layer 1" viewBox="0 0 24 24">
                   <path
                     fill="#1e8467"
                     d="M15,17a1,1,0,1,0,1,1A1,1,0,0,0,15,17ZM9,17H6a1,1,0,0,0,0,2H9a1,1,0,0,0,0-2Zm9,0a1,1,0,1,0,1,1A1,1,0,0,0,18,17Zm-3-6a1,1,0,1,0,1,1A1,1,0,0,0,15,11ZM9,11H6a1,1,0,0,0,0,2H9a1,1,0,0,0,0-2Zm9-6a1,1,0,1,0,1,1A1,1,0,0,0,18,5Zm0,6a1,1,0,1,0,1,1A1,1,0,0,0,18,11Zm4-6a3,3,0,0,0-3-3H5A3,3,0,0,0,2,5V7a3,3,0,0,0,.78,2A3,3,0,0,0,2,11v2a3,3,0,0,0,.78,2A3,3,0,0,0,2,17v2a3,3,0,0,0,3,3H19a3,3,0,0,0,3-3V17a3,3,0,0,0-.78-2A3,3,0,0,0,22,13V11a3,3,0,0,0-.78-2A3,3,0,0,0,22,7ZM20,19a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V17a1,1,0,0,1,1-1H19a1,1,0,0,1,1,1Zm0-6a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V11a1,1,0,0,1,1-1H19a1,1,0,0,1,1,1Zm0-6a1,1,0,0,1-1,1H5A1,1,0,0,1,4,7V5A1,1,0,0,1,5,4H19a1,1,0,0,1,1,1ZM15,5a1,1,0,1,0,1,1A1,1,0,0,0,15,5ZM9,5H6A1,1,0,0,0,6,7H9A1,1,0,0,0,9,5Z"
                   ></path>
                 </svg>
-                <span className="my-2 block text-sm font-semibold text-black">
-                  {formatHostUrl(server.hostUrl)}
-                </span>
+                <span className="my-2 block text-sm font-semibold text-black">{formatHostUrl(server.host)}</span>
                 {server.database !== "-1" && (
                   <span className="block text-xs text-gray-500">
-                    Database:{" "}
-                    {server.databaseList?.find(
-                      (d) => d.id?.toString() === server.database
-                    )?.name}
+                    Database: {server.databaseList?.find((d) => d.id?.toString() === server.database)?.name}
                   </span>
                 )}
                 {server.collection !== "-1" && (
                   <span className="block text-xs text-gray-500">
-                    Collection:{" "}
-                    {server.collectionTree?.find(
-                      (c) => c.id?.toString() === server.collection
-                    )?.name}
+                    Collection: {server.collectionTree?.find((c) => c.id?.toString() === server.collection)?.name}
                   </span>
                 )}
                 {server.excludedIDs && (
-                  <span className="block text-xs text-gray-500">
-                    Cards Excluded: {server.excludedIDs?.length}
-                  </span>
+                  <span className="block text-xs text-gray-500">Cards Excluded: {server.excludedIDs?.length}</span>
                 )}
               </button>
             </div>
@@ -693,20 +624,13 @@ function ServerInput(props: {
             }}
             className="items-center flex flex-col rounded-lg border-2 border-dashed border-gray-300 p-11 text-center hover:border-gray-400 w-full"
           >
-            <svg
-              className="h-16 w-16"
-              xmlns="http://www.w3.org/2000/svg"
-              data-name="Layer 1"
-              viewBox="0 0 24 24"
-            >
+            <svg className="h-16 w-16" xmlns="http://www.w3.org/2000/svg" data-name="Layer 1" viewBox="0 0 24 24">
               <path
                 fill="#274c77"
                 d="M15,17a1,1,0,1,0,1,1A1,1,0,0,0,15,17ZM9,17H6a1,1,0,0,0,0,2H9a1,1,0,0,0,0-2Zm9,0a1,1,0,1,0,1,1A1,1,0,0,0,18,17Zm-3-6a1,1,0,1,0,1,1A1,1,0,0,0,15,11ZM9,11H6a1,1,0,0,0,0,2H9a1,1,0,0,0,0-2Zm9-6a1,1,0,1,0,1,1A1,1,0,0,0,18,5Zm0,6a1,1,0,1,0,1,1A1,1,0,0,0,18,11Zm4-6a3,3,0,0,0-3-3H5A3,3,0,0,0,2,5V7a3,3,0,0,0,.78,2A3,3,0,0,0,2,11v2a3,3,0,0,0,.78,2A3,3,0,0,0,2,17v2a3,3,0,0,0,3,3H19a3,3,0,0,0,3-3V17a3,3,0,0,0-.78-2A3,3,0,0,0,22,13V11a3,3,0,0,0-.78-2A3,3,0,0,0,22,7ZM20,19a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V17a1,1,0,0,1,1-1H19a1,1,0,0,1,1,1Zm0-6a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V11a1,1,0,0,1,1-1H19a1,1,0,0,1,1,1Zm0-6a1,1,0,0,1-1,1H5A1,1,0,0,1,4,7V5A1,1,0,0,1,5,4H19a1,1,0,0,1,1,1ZM15,5a1,1,0,1,0,1,1A1,1,0,0,0,15,5ZM9,5H6A1,1,0,0,0,6,7H9A1,1,0,0,0,9,5Z"
               ></path>
             </svg>
-            <span className="mt-2 block text-sm font-semibold text-black">
-              Add a new {props.type} instance
-            </span>
+            <span className="mt-2 block text-sm font-semibold text-black">Add a new {props.type} instance</span>
           </button>
         </div>
       )}
