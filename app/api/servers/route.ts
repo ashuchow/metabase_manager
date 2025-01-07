@@ -3,61 +3,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// export async function GET(request: Request) {
-//   try {
-//     const { searchParams } = new URL(request.url);
-//     const userIdParam = searchParams.get('userId');
-
-//     console.log("Received GET request with userId:", userIdParam);
-
-//     // Validate userId
-//     if (!userIdParam) {
-//       console.log("User ID is missing.");
-//       return NextResponse.json(
-//         { error: 'User ID is required' },
-//         { status: 400 }
-//       );
-//     }
-
-//     const userId = parseInt(userIdParam, 10);
-//     if (isNaN(userId)) {
-//       console.log("Invalid User ID:", userIdParam);
-//       return NextResponse.json(
-//         { error: 'Invalid User ID' },
-//         { status: 400 }
-//       );
-//     }
-
-//     // Fetch all servers associated with the user
-//     const userServers = await prisma.userMetabaseServer.findMany({
-//       where: {
-//         userId: userId,
-//       },
-//       include: {
-//         server: true, // Include server details
-//       },
-//     });
-
-//     console.log("Fetched userServers:", userServers);
-
-//     // Format the response data to include necessary fields
-//     const formattedServers = userServers.map((userServer) => ({
-//       id: userServer.server.id, // Server ID
-//       hostUrl: userServer.server.hostUrl,
-//       isSource: userServer.isSource, // User-specific isSource
-//       email: userServer.email,
-//       password: userServer.password
-//       // Exclude email and password for security
-//     }));
-
-//     console.log("Formatted Servers:", formattedServers);
-
-//     return NextResponse.json(formattedServers, { status: 200 });
-//   } catch (error: any) {
-//     console.error("Error in GET /api/servers:", error);
-//     return NextResponse.json({ error: "Failed to fetch servers" }, { status: 500 });
-//   }
-// }
 
 export async function GET(request: Request) {
   try {

@@ -35,7 +35,7 @@ function ServerInput(props: {
   const [collectionsList, setCollectionsList] = useState<Database[]>([]);
   const [disableAddButton, setDisableAddButton] = useState(false);
   const [form, setForm] = useState({
-    host: "", // Changed from 'host' to 'host'
+    host: "",
     session_token: "",
     excludedIDs: "",
     email: "",
@@ -247,7 +247,6 @@ function ServerInput(props: {
     await fetchDatabases(session_token);
     await fetchCollections(session_token);
 
-    // Depending on your flow, you might want to switch views here
   }
 
   function resetForm(showForm: boolean = true) {
